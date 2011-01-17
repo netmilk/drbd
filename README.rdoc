@@ -10,15 +10,18 @@ Ruby wrapper for DRBD
 
 == Limitations
 
-* Just one-morning prototype
 * Best with drbd version > 8.3.7
+* It'sJust one-morning's prototype, take patience
 * No tests
 * No documentation
 * Absolutely no warranty, use it at your own risk
 
+== Installation
+
+<code>gem install drbd</code>
+
 
 == How it works
-
 d = Drbd.new("fqdn.domain.tld")
 
 r = d.resources.first
@@ -38,7 +41,6 @@ r = d.find_resource_by_disk("/dev/volgroup-logvolume--name")
 r.resync_running?
 
 r.status[:resynced_percent]
-
 
 == Copyright
 
