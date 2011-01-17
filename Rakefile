@@ -5,13 +5,13 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
     gem.name = "drbd"
-    gem.summary = %Q{TODO: one-line summary of your gem}
-    gem.description = %Q{TODO: longer description of your gem}
+    gem.summary = "Ruby wrapper for DRBD"
+    gem.description = "Ruby wrapper for DRBD - RAID 1 over TCP/IP"
     gem.email = "adam.kliment@virtualmaster.cz"
     gem.homepage = "http://github.com/n1k/drbd"
     gem.authors = ["Adam Kliment"]
     gem.add_development_dependency "rspec", ">= 1.2.9"
-    # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
+    gem.add_development_dependency "nokogiri", ">= 1.4.4"
   end
   Jeweler::GemcutterTasks.new
 rescue LoadError

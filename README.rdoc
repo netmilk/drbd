@@ -1,16 +1,44 @@
-= drbd
+= DRBD
 
-Description goes here.
+Ruby wrapper for DRBD
 
-== Note on Patches/Pull Requests
- 
-* Fork the project.
-* Make your feature addition or bug fix.
-* Add tests for it. This is important so I don't break it in a
-  future version unintentionally.
-* Commit, do not mess with rakefile, version, or history.
-  (if you want to have your own version, that is fine but bump version in a commit by itself I can ignore when I pull)
-* Send me a pull request. Bonus points for topic branches.
+== It is usefull for
+
+* Connect to server over SSH 
+* Parse current running configuration
+* Parse current status
+
+== Limitations
+
+* Just one-morning prototype
+* Best with drbd version > 8.3.7
+* No tests
+* No documentation
+* Absolutely no warranty, use it at your own risk
+
+
+== How it works
+
+d = Drbd.new("fqdn.domain.tld")
+
+r = d.resources.first
+
+r.name
+
+r.hosts.map{|h| h.address }
+
+r.status
+
+r = d.find_resource_by_name("r0")
+
+r.consinstent?
+
+r = d.find_resource_by_disk("/dev/volgroup-logvolume--name")
+
+r.resync_running?
+
+r.status[:resynced_percent]
+
 
 == Copyright
 
