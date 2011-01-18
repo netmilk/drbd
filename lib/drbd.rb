@@ -1,11 +1,16 @@
 require 'rubygems'
 require 'nokogiri'
 class DRBD
-  attr_reader :resources
+  attr_reader :resources, :host, :command
 
-  def initialize host
+  def initialize host, opts = {}
+    parse_opts opts
     @host = host
     load!
+  end
+
+  def parse_opts opts
+    opts[:command].nil? ? @command = "sudo /sbin/drbdadm" : @command = opts[:command]
   end
 
   def load!
@@ -14,11 +19,11 @@ class DRBD
   end
 
   def load_resources!
-    @resources = Config.new(IO.popen("ssh #{@host} \"sudo /sbin/drbdadm dump-xml\"")).resources
+    @resources = Resource.load_config(IO.popen("ssh #{@host} \"#{@command} dump-xml\""), self)
   end
 
   def load_status!
-    raw_xml = IO.popen("ssh #{@host} \"sudo /sbin/drbdadm status\"")
+    raw_xml = IO.popen("ssh #{@host} \"#{@command} status\"")
     statuses = Status.new(raw_xml).resources
     set_resources_status statuses
   end
@@ -37,35 +42,33 @@ class DRBD
   def find_resource_by_disk disk_name
     @resources.select{|r| r.hosts.inject(false){|sum,h| (h.disk == disk_name && sum == false) ? true  : sum}}.first
   end
-
-  class Config
-    attr_reader :xml
-
-    def initialize xml
-      @xml = Nokogiri::XML(xml)
-    end
-
-    def resources
-      @xml.xpath("//config/resource").map{|r| Resource.new r }
-    end
-  end
-
+  
   class Host
-    attr_reader :name, :device, :disk, :address, :meta_disk
+    attr_reader :name, :device, :disk, :address, :meta_disk, :minor
     def initialize host
       @name = host['name']
       @device = host.xpath(".//device").text
+      @minor = host.xpath(".//device").attr("minor").value
       @disk = host.xpath(".//disk").text
       @address = host.xpath(".//address").text
+      @family = host.xpath(".//address").attr("family").value
+      @port = host.xpath(".//address").attr("port").value
       @meta_disk = host.xpath(".//meta-disk").text
     end
   end
   
   class Resource
-    attr_reader :name, :device, :disk, :address, :meta_disk, :hosts
+    attr_reader :name, :protocol,  :hosts, :drbd
     attr_accessor :status
-    def initialize nokogiri_resource
+    
+    def self.load_config raw, drbd
+      xml = Nokogiri::XML(raw)    
+      xml.xpath("//config/resource").map{|r| Resource.new r, drbd }
+    end
+    
+    def initialize nokogiri_resource, drbd
       xml = nokogiri_resource
+      @drbd = drbd
       @name = xml['name']
       @protocol = xml['protocol']
       @hosts = xml.xpath(".//host").to_a.map do |host_xml|
@@ -79,6 +82,52 @@ class DRBD
     
     def consistent?
       status[:ds1] == "UpToDate" && status[:ds2] == "UpToDate" && status[:resynced_percent] == nil
+    end
+    
+    def up?
+      status[:cs] == "Connected" || status[:cs] == "SyncTarget"
+    end
+    
+    def down?
+      status[:cs] == "Unconfigured"
+    end 
+
+    def up!
+      args = "up #{self.name}"
+      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
+      system(command)
+      drbd.load_status!
+    end
+    
+    def down!
+      args = "down #{self.name}"
+      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
+      system(command)
+      drbd.load_status!
+    end
+    
+    def init_metadata
+      if self.down?
+        #drbdmeta 0 v08 /dev/mapper/dikobraz-www--emailmaster--cz_root_meta 0 create-md 
+        command = "ssh #{drbd.host} \"sudo /sbin/drbdmeta --force #{local_minor} v08 #{local_host.meta_disk} 0 create-md\""
+        system(command)
+        return true
+      else
+        return false
+      end
+    end
+
+    def local_host
+      hosts.select{|h| h.name == drbd.host}.first
+    end
+     
+    def local_minor
+      retrurn nil if local_host == nil
+      local_host.minor
+    end
+    
+    def state
+      status[:cs]
     end
   end
 
@@ -105,3 +154,6 @@ class DRBD
   end
 end
 
+D = DRBD.new("dikobraz.vmin.cz")
+require 'irb'
+IRB.start
