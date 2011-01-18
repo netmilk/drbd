@@ -106,7 +106,7 @@ class DRBD
       drbd.load_status!
     end
     
-    def init_metadata
+    def init_metadata!
       if self.down?
         #drbdmeta 0 v08 /dev/mapper/dikobraz-www--emailmaster--cz_root_meta 0 create-md 
         command = "ssh #{drbd.host} \"sudo /sbin/drbdmeta --force #{local_minor} v08 #{local_host.meta_disk} 0 create-md\""
@@ -116,7 +116,8 @@ class DRBD
         return false
       end
     end
-
+    
+    
     def local_host
       hosts.select{|h| h.name == drbd.host}.first
     end
