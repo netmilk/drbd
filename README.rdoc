@@ -11,6 +11,7 @@ Ruby wrapper for DRBD
 == Limitations
 
 * Best with drbd version > 8.3.7
+* Hostname used for connection must be one of hostnames in drbd.conf (FQDN ideally)
 * It'sJust one-morning's prototype, take patience
 * No tests
 * No documentation
@@ -22,25 +23,70 @@ Ruby wrapper for DRBD
 
 
 == How it works
+# simply fetch data from remote host
 d = Drbd.new("fqdn.domain.tld")
 
+# you can specify command to be executed 
+
+d = Drbd.new("fqdn.domain.tld", :command => 'sudo /sbin/drbdadm')
+
+# obtain array of configured resources
 r = d.resources.first
 
+# get resource name
 r.name
 
-r.hosts.map{|h| h.address }
+# get resource protocol
+r.protocol
 
+# get hosts for resource
+r.hosts
+
+# get status for resource
 r.status
 
+# get node addresses
+r.hosts.map{|h| h.address }
+
+# get status
+# resource status is hash with keys: 
+# [:cs, :resynced_percent, :minor, :ro1, :ds1, :ro2, :ds2, :name]
+r.status
+
+# find resource by name
 r = d.find_resource_by_name("r0")
 
-r.consinstent?
-
+# find resource by backing disk
 r = d.find_resource_by_disk("/dev/volgroup-logvolume--name")
 
+# true if both of devices are UpToDate
+r.consinstent?
+
+# true if resynced_percent is present in status
 r.resync_running?
 
-r.status[:resynced_percent]
+# true if resource status is "Connected"
+r.up?
+
+# true if resource status is "Unconfigured"
+r.down?
+
+# perform drbdadm up on resource (use at your own risk!)
+r.up!
+
+# perform drbdadm down on resource (use at your own risk!)
+r.down!
+
+# perform forced drbdadm create-md on resource (use at your own risk!)
+r.init_metadata
+
+
+== TODO
+
+* Replace IO.popen("ssh ...") with native ruby net/ssh
+* Add states to actions (analyze exit status)
+* Test suite
+
 
 == Copyright
 
