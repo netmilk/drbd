@@ -155,6 +155,3 @@ class DRBD
   end
 end
 
-D = DRBD.new("dikobraz.vmin.cz")
-require 'irb'
-IRB.start
