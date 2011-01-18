@@ -97,6 +97,7 @@ class DRBD
       command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
       system(command)
       drbd.load_status!
+      nil
     end
     
     def down!
@@ -104,6 +105,7 @@ class DRBD
       command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
       system(command)
       drbd.load_status!
+      nil
     end
     
     def init_metadata!

@@ -23,63 +23,95 @@ Ruby wrapper for DRBD
 
 
 == How it works
-# simply fetch data from remote host
-d = Drbd.new("fqdn.domain.tld")
+- simply fetch data from remote host
 
-# you can specify command to be executed 
+  <tt>d = Drbd.new("fqdn.domain.tld")</tt>
 
-d = Drbd.new("fqdn.domain.tld", :command => 'sudo /sbin/drbdadm')
+  you can specify command to be executed 
 
-# obtain array of configured resources
-r = d.resources.first
+  <tt>d = Drbd.new("fqdn.domain.tld", :command => 'sudo /sbin/drbdadm')</tt>
 
-# get resource name
-r.name
+- obtain array of configured configured resources
+  
+  <tt>r = d.resources.first</tt>
 
-# get resource protocol
-r.protocol
+- get resource name
+  
+  <tt>r.name</tt>
 
-# get hosts for resource
-r.hosts
+- get resource protocol
+  
+  <tt>r.protocol</tt>
 
-# get status for resource
-r.status
+- get hosts for resource
+  
+  <tt>r.hosts</tt>
 
-# get node addresses
-r.hosts.map{|h| h.address }
+- get status for resource
+  
+  <tt>r.status</tt>
 
-# get status
-# resource status is hash with keys: 
-# [:cs, :resynced_percent, :minor, :ro1, :ds1, :ro2, :ds2, :name]
-r.status
+- get node addresses
+  
+  <tt>r.hosts.map{|h| h.address }</tt>
 
-# find resource by name
-r = d.find_resource_by_name("r0")
+- get status
+  
+  resource status is hash with keys:
+  
+  [:cs, :resynced_percent, :minor, :ro1, :ds1, :ro2, :ds2, :name]
+  
+  <tt>r.status</tt>
 
-# find resource by backing disk
-r = d.find_resource_by_disk("/dev/volgroup-logvolume--name")
+- find resource by name
+  
+  <tt>r = d.find_resource_by_name("r0")</tt>
 
-# true if both of devices are UpToDate
-r.consinstent?
+- find resource by backing disk
+  
+  <tt>r = d.find_resource_by_disk("/dev/volgroup-logvolume--name")</tt>
 
-# true if resynced_percent is present in status
-r.resync_running?
+- true if both of devices are UpToDate
+  
+  <tt>r.consinstent?</tt>
 
-# true if resource status is "Connected"
-r.up?
+- true if resynced_percent is present in status
+  
+  <tt>r.resync_running?</tt>
 
-# true if resource status is "Unconfigured"
-r.down?
+- true if resource status is "Connected"
+  
+  <tt>r.up?</tt>
 
-# perform drbdadm up on resource (use at your own risk!)
-r.up!
+- true if resource status is "Unconfigured"
+  
+  <tt>r.down?</tt>
 
-# perform drbdadm down on resource (use at your own risk!)
-r.down!
+- stateless perform drbdadm up on resource (use at your own risk!)
+  
+  <tt>r.up!</tt>
 
-# perform forced drbdadm create-md on resource (use at your own risk!)
-r.init_metadata
+- stateless perform drbdadm down on resource (use at your own risk!)
+  
+  <tt>r.down!</tt>
 
+- stateless perform forced drbdadm create-md on resource (use at your own risk!)
+  
+  if resource is not down, returns false and does nothing
+  
+  <tt>r.init_metadata</tt>
+  
+  
+  
+- back-reference to the DRBD object
+  
+  <tt>r.drbd</tt>
+
+- uptate status of all resources
+  
+  <tt>r.drbd.load_status!</tt>
+
+  <tt>d.load_status!</tt>
 
 == TODO
 
