@@ -84,14 +84,54 @@ class DRBD
       status[:ds1] == "UpToDate" && status[:ds2] == "UpToDate" && status[:resynced_percent] == nil
     end
     
-    def up?
-      status[:cs] == "Connected" || status[:cs] == "SyncTarget"
+    def connected?
+      status[:cs] == "Connected" 
     end
     
     def down?
-      status[:cs] == "Unconfigured"
+      status[:cs] == "Unconfigured" || status.nil?
     end 
+    
+    def primary?
+      stauts[:ro0] == "Primary"
+    end
+    
+    def primary!
+      args = "-- --overwrite-data-of-peer primary #{self.name}"
+      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
+      system(command)
+      drbd.load_status!
+      nil
+    end
+    
+    def role
+      status[:ro1]
+    end
 
+    def connect!
+      args = "connect #{self.name}"
+      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
+      system(command)
+      drbd.load_status!
+      nil
+    end
+
+    def attach!
+      args = "attach #{self.name}"
+      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
+      system(command)
+      drbd.load_status!
+      nil
+    end
+
+    def detach!
+      args = "detach #{self.name}"
+      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
+      system(command)
+      drbd.load_status!
+      nil
+    end
+    
     def up!
       args = "up #{self.name}"
       command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
@@ -110,8 +150,8 @@ class DRBD
     
     def init_metadata!
       if self.down?
-        #drbdmeta 0 v08 /dev/mapper/dikobraz-www--emailmaster--cz_root_meta 0 create-md 
-        command = "ssh #{drbd.host} \"sudo /sbin/drbdmeta --force #{local_minor} v08 #{local_host.meta_disk} 0 create-md\""
+        args = "-- --force create-md r0#{self.name}"
+        command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
         system(command)
         return true
       else
@@ -123,9 +163,14 @@ class DRBD
     def local_host
       hosts.select{|h| h.name == drbd.host}.first
     end
-     
+
+    def local_disk
+      return nil if local_host == nil
+      local_host.disk
+    end
+
     def local_minor
-      retrurn nil if local_host == nil
+      return nil if local_host == nil
       local_host.minor
     end
     
