@@ -19,12 +19,18 @@ class DRBD
   end
 
   def load_resources!
-    @resources = Resource.load_config(IO.popen("ssh #{@host} \"#{@command} dump-xml\""), self)
+    io = IO.popen("ssh #{@host} \"#{@command} dump-xml\"")
+    xml = io.readlines.join("\n")
+    io.close
+    @resources = Resource.load_config(xml, self)
   end
 
   def load_status!
-    raw_xml = IO.popen("ssh #{@host} \"#{@command} status\"")
-    statuses = Status.new(raw_xml).resources
+    io = IO.popen("ssh #{@host} \"#{@command} status\"")
+    xml = io.readlines.join("\n")
+    io.close
+
+    statuses = Status.new(xml).resources
     set_resources_status statuses
   end
 
@@ -116,6 +122,21 @@ class DRBD
       nil
     end
 
+    def disconnect!
+      args = "disconnect #{self.name}"
+      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
+      system(command)
+      drbd.load_status!
+      nil
+    end
+
+    def resize!
+      args = "-- --assume-peer-has-space resize #{self.name}"
+      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
+      system(command)
+      drbd.load_status!
+    end
+    
     def attach!
       args = "attach #{self.name}"
       command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
@@ -150,7 +171,7 @@ class DRBD
     
     def init_metadata!
       if self.down?
-        args = "-- --force create-md r0#{self.name}"
+        args = "-- --force create-md #{self.name}"
         command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
         system(command)
         return true
