@@ -4,18 +4,20 @@ Ruby wrapper for DRBD
 
 == It is usefull for
 
-* Connect to server over SSH 
+* Connect to the server over SSH 
 * Parse current running configuration
 * Parse current status
+* Execute essential commands
 
 == Limitations
 
-* Best with drbd version > 8.3.7
-* Hostname used for connection must be one of hostnames in drbd.conf (FQDN ideally)
-* It'sJust one-morning's prototype, take patience
+* Best with DRBD version > 8.3.7
+* Hostname used for connection must be one of the hostnames in drbd.conf (FQDN ideally)
+* It's just one-morning's prototype, take patience
+* Under development, everything may change
 * No tests
 * No documentation
-* Absolutely no warranty, use it at your own risk
+* Absolutely no warranty, use it at your own risk. Be carefull, you may lost some data!
 
 == Installation
 
@@ -34,6 +36,24 @@ Ruby wrapper for DRBD
 - obtain array of configured configured resources
   
   <tt>r = d.resources.first</tt>
+
+- stateless execute command (WARNING! let's check the source what it does)
+
+  <tt>r.primary!</tt>
+
+  <tt>r.primary!(:force => true)</tt>
+
+  <tt>r.secondary!</tt>
+
+  <tt>r.connect!</tt>
+
+  <tt>r.attach!</tt>
+
+  <tt>r.detach!</tt>
+
+  <tt>r.up!</tt>
+
+  <tt>r.down!</tt>
 
 - get resource name
   

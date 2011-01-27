@@ -95,15 +95,35 @@ class DRBD
     end
     
     def down?
-      status[:cs] == "Unconfigured" || status.nil?
+      return true if status.nil?                                                                                              
+      return true if status[:cs] == "Unconfigured"                                                                            
+      return false
     end 
     
     def primary?
-      stauts[:ro0] == "Primary"
+      status[:ro1] == "Primary"
+    end
+
+    def secondary?
+      stutus[:ro1] == "Secondary"
     end
     
-    def primary!
-      args = "-- --overwrite-data-of-peer primary #{self.name}"
+    def primary!(opts = {})
+
+      if opts[:force] == true
+        args = "-- --overwrite-data-of-peer primary #{self.name}"
+      else
+        args = "primary #{self.name}"
+      end
+
+      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
+      system(command)
+      drbd.load_status!
+      nil
+    end
+
+    def secondary!
+      args = "-- --overwrite-data-of-peer secondary #{self.name}"
       command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
       system(command)
       drbd.load_status!
