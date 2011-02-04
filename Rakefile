@@ -11,7 +11,7 @@ begin
     gem.homepage = "http://github.com/n1k/drbd"
     gem.authors = ["Adam Kliment"]
     gem.add_development_dependency "rspec", ">= 1.2.9"
-    gem.add_development_dependency "nokogiri", ">= 1.4.4"
+    gem.add_dependency "nokogiri", ">= 1.4.4"
   end
   Jeweler::GemcutterTasks.new
 rescue LoadError
