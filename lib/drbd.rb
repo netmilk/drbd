@@ -122,8 +122,18 @@ class DRBD
       nil
     end
 
+
     def secondary!
       args = "-- --overwrite-data-of-peer secondary #{self.name}"
+      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
+      system(command)
+      drbd.load_status!
+      nil
+    end
+
+    def syncer!
+      args = "syncer #{self.name}"
+
       command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
       system(command)
       drbd.load_status!
