@@ -1,17 +1,68 @@
 require 'rubygems'
 require 'nokogiri'
+require 'net/ssh'
 class DRBD
-  attr_reader :resources, :host, :command
+  attr_reader :resources, :connection, :command
 
   def initialize host, opts = {}
+    connect host
     parse_opts opts
-    @host = host
     load!
   end
 
+  def connect host
+    if host.class == String
+      @connection = Net::SSH.start(host, ENV['USER'])
+    elsif host.class == Net::SSH::Connection::Session
+      @connection = host
+    else
+      raise "Connection must be String with hostname or Net::SSH::Connection::Session object but it is #{host.class}."
+    end
+  end
   def parse_opts opts
     opts[:command].nil? ? @command = "sudo /sbin/drbdadm" : @command = opts[:command]
   end
+
+  def ssh_output(command)
+    stdout = ""
+    stderr = ""
+    channel = @connection.open_channel do |ch|
+      ch.exec(command) do |ch, success|
+        raise "could not execute command" unless success
+
+        # "on_data" is called when the process writes something to stdout
+        ch.on_data do |c, data|
+         stdout = data
+        end
+
+        # "on_extended_data" is called when the process writes something to stderr
+        ch.on_extended_data do |c, type, data|
+          stderr = data
+        end
+        #ch.on_close { puts "done!" }
+      end
+    end
+    channel.wait
+    puts stderr
+    return stdout
+  end
+
+  def ssh_exec(command)
+    ssh = self.ssh_connection_with_cache
+    channel = ssh.open_channel do |ch|
+      ch.exec command
+      ch.on_request("exit-status") do |ch, data|
+        exit_status = data.read_long
+      end
+    end
+    channel.wait
+
+    if exit_status > 0
+      return exit_status
+    else
+      return true
+    end  
+  end  
 
   def load!
     load_resources!
@@ -19,17 +70,12 @@ class DRBD
   end
 
   def load_resources!
-    io = IO.popen("ssh #{@host} \"#{@command} dump-xml\"")
-    xml = io.readlines.join("\n")
-    io.close
+    xml = ssh_output("#{@command} dump-xml")
     @resources = Resource.load_config(xml, self)
   end
 
   def load_status!
-    io = IO.popen("ssh #{@host} \"#{@command} status\"")
-    xml = io.readlines.join("\n")
-    io.close
-
+    xml = ssh_output("#{@command} status")
     statuses = Status.new(xml).resources
     set_resources_status statuses
   end
@@ -116,8 +162,8 @@ class DRBD
         args = "primary #{self.name}"
       end
 
-      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
-      system(command)
+      command = "#{drbd.command} #{args}"
+      ssh_exec(command)
       drbd.load_status!
       nil
     end
@@ -125,8 +171,8 @@ class DRBD
 
     def secondary!
       args = "-- --overwrite-data-of-peer secondary #{self.name}"
-      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
-      system(command)
+      command = "#{drbd.command} #{args}"
+      ssh_exec(command)
       drbd.load_status!
       nil
     end
@@ -134,8 +180,8 @@ class DRBD
     def syncer!
       args = "syncer #{self.name}"
 
-      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
-      system(command)
+      command = "#{drbd.command} #{args}"
+      ssh_exec(command)
       drbd.load_status!
       nil
     end
@@ -146,55 +192,55 @@ class DRBD
 
     def connect!
       args = "connect #{self.name}"
-      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
-      system(command)
+      command = "#{drbd.command} #{args}"
+      ssh_exec(command)
       drbd.load_status!
       nil
     end
 
     def disconnect!
       args = "disconnect #{self.name}"
-      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
-      system(command)
+      command = "#{drbd.command} #{args}"
+      ssh_exec(command)
       drbd.load_status!
       nil
     end
 
     def resize!
       args = "-- --assume-peer-has-space resize #{self.name}"
-      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
-      system(command)
+      command = "#{drbd.command} #{args}"
+      ssh_exec(command)
       drbd.load_status!
     end
     
     def attach!
       args = "attach #{self.name}"
-      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
-      system(command)
+      command = "#{drbd.command} #{args}"
+      ssh_exec(command)
       drbd.load_status!
       nil
     end
 
     def detach!
       args = "detach #{self.name}"
-      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
-      system(command)
+      command = "#{drbd.command} #{args}"
+      ssh_exec(command)
       drbd.load_status!
       nil
     end
     
     def up!
       args = "up #{self.name}"
-      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
-      system(command)
+      command = "#{drbd.command} #{args}"
+      ssh_exec(command)
       drbd.load_status!
       nil
     end
     
     def down!
       args = "down #{self.name}"
-      command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
-      system(command)
+      command = "#{drbd.command} #{args}"
+      ssh_exec(command)
       drbd.load_status!
       nil
     end
@@ -202,8 +248,8 @@ class DRBD
     def init_metadata!
       if self.down?
         args = "-- --force create-md #{self.name}"
-        command = "ssh #{drbd.host} \"#{drbd.command} #{args}\""
-        system(command)
+        command = "#{drbd.command} #{args}"
+        ssh_exec(command)
         return true
       else
         return false
@@ -248,8 +294,6 @@ class DRBD
         r
       end
     end
-    
-    
   end
 end
 

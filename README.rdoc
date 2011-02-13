@@ -25,11 +25,17 @@ Ruby wrapper for DRBD
 
 
 == How it works
-- simply fetch data from remote host
+- you can connect to remote node with hostname, login will be executed with current user and his key
 
   <tt>d = Drbd.new("fqdn.domain.tld")</tt>
 
-  you can specify command to be executed 
+  or you can "recycle" existing Net::SSH session to improve performance:
+
+  <tt>ssh = Net:SSH.start("fwdn.domain.tld", "root", :password => 'secret')</tt>
+
+  <tt>d = Drbd.new(ssh)</tt>
+  
+  specify command to be executed: 
 
   <tt>d = Drbd.new("fqdn.domain.tld", :command => 'sudo /sbin/drbdadm')</tt>
 
@@ -55,6 +61,20 @@ Ruby wrapper for DRBD
 
   <tt>r.down!</tt>
 
+- analyze actual state
+
+  <tt>r.resync_running?</tt>
+
+  <tt>r.consistent?</tt>
+
+  <tt>r.connected?</tt>
+
+  <tt>r.down?</tt>
+
+  <tt>r.primary?</tt>
+
+  <tt>r.secondary?</tt>
+
 - get resource name
   
   <tt>r.name</tt>
@@ -67,15 +87,13 @@ Ruby wrapper for DRBD
   
   <tt>r.hosts</tt>
 
-- get status for resource
-  
-  <tt>r.status</tt>
-
 - get node addresses
   
   <tt>r.hosts.map{|h| h.address }</tt>
 
-- get status
+- get status for resource
+  
+  <tt>r.status</tt>
   
   resource status is hash with keys:
   
@@ -135,11 +153,10 @@ Ruby wrapper for DRBD
 
 == TODO
 
-* Replace IO.popen("ssh ...") with native ruby net/ssh
 * Add states to actions (analyze exit status)
 * Test suite
 
 
 == Copyright
 
-Copyright (c) 2011 Adam Kliment. See LICENSE for details.
+Copyright (c) 2011 Adam Kliment, Virtualmaster.cz. See LICENSE for details.
