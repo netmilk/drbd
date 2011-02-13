@@ -32,25 +32,33 @@ class DRBD
 
         # "on_data" is called when the process writes something to stdout
         ch.on_data do |c, data|
-         stdout = data
+         stdout << data
         end
 
         # "on_extended_data" is called when the process writes something to stderr
         ch.on_extended_data do |c, type, data|
-          stderr = data
+          stderr << data
         end
         #ch.on_close { puts "done!" }
       end
     end
     channel.wait
-    puts stderr
+    #puts stderr
     return stdout
   end
 
   def ssh_exec(command)
-    ssh = self.ssh_connection_with_cache
-    channel = ssh.open_channel do |ch|
+    exit_status = nil
+    channel = @connection.open_channel do |ch|
       ch.exec command
+
+      ch.on_data do |c, data|
+        puts data
+      end
+      ch.on_extended_data do |c, type, data|
+        puts data
+      end
+
       ch.on_request("exit-status") do |ch, data|
         exit_status = data.read_long
       end
@@ -163,7 +171,7 @@ class DRBD
       end
 
       command = "#{drbd.command} #{args}"
-      ssh_exec(command)
+      self.drbd.ssh_exec(command)
       drbd.load_status!
       nil
     end
@@ -172,7 +180,7 @@ class DRBD
     def secondary!
       args = "-- --overwrite-data-of-peer secondary #{self.name}"
       command = "#{drbd.command} #{args}"
-      ssh_exec(command)
+      self.drbd.ssh_exec(command)
       drbd.load_status!
       nil
     end
@@ -181,7 +189,7 @@ class DRBD
       args = "syncer #{self.name}"
 
       command = "#{drbd.command} #{args}"
-      ssh_exec(command)
+      self.drbd.ssh_exec(command)
       drbd.load_status!
       nil
     end
@@ -193,7 +201,7 @@ class DRBD
     def connect!
       args = "connect #{self.name}"
       command = "#{drbd.command} #{args}"
-      ssh_exec(command)
+      self.drbd.ssh_exec(command)
       drbd.load_status!
       nil
     end
@@ -201,7 +209,7 @@ class DRBD
     def disconnect!
       args = "disconnect #{self.name}"
       command = "#{drbd.command} #{args}"
-      ssh_exec(command)
+      self.drbd.ssh_exec(command)
       drbd.load_status!
       nil
     end
@@ -209,14 +217,14 @@ class DRBD
     def resize!
       args = "-- --assume-peer-has-space resize #{self.name}"
       command = "#{drbd.command} #{args}"
-      ssh_exec(command)
+      self.drbd.ssh_exec(command)
       drbd.load_status!
     end
     
     def attach!
       args = "attach #{self.name}"
       command = "#{drbd.command} #{args}"
-      ssh_exec(command)
+      self.drbd.ssh_exec(command)
       drbd.load_status!
       nil
     end
@@ -224,7 +232,7 @@ class DRBD
     def detach!
       args = "detach #{self.name}"
       command = "#{drbd.command} #{args}"
-      ssh_exec(command)
+      self.drbd.ssh_exec(command)
       drbd.load_status!
       nil
     end
@@ -232,7 +240,7 @@ class DRBD
     def up!
       args = "up #{self.name}"
       command = "#{drbd.command} #{args}"
-      ssh_exec(command)
+      self.drbd.ssh_exec(command)
       drbd.load_status!
       nil
     end
@@ -240,7 +248,7 @@ class DRBD
     def down!
       args = "down #{self.name}"
       command = "#{drbd.command} #{args}"
-      ssh_exec(command)
+      self.drbd.ssh_exec(command)
       drbd.load_status!
       nil
     end
@@ -249,7 +257,7 @@ class DRBD
       if self.down?
         args = "-- --force create-md #{self.name}"
         command = "#{drbd.command} #{args}"
-        ssh_exec(command)
+        self.drbd.ssh_exec(command)
         return true
       else
         return false
